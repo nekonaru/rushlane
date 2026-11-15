@@ -1,0 +1,18 @@
+# Julia artifacts
+*.jl.cov
+*.jl.*.cov
+*.jl.mem
+/coverage/
+
+# Build and docs
+/build/
+/docs/build/
+/docs/site/
+
+# Local output from examples and reports
+/out/
+
+# OS and editor noise
+.DS_Store
+Thumbs.db
+*.swp
