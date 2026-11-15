@@ -1,0 +1,99 @@
+# ============================================================
+# Rushlane: konfigurasi simulasi antrean kantin
+# Semua waktu dalam format HH:MM (24 jam). Satuan uang: Rupiah.
+# Cara mengukur parameter di lapangan dijelaskan di docs/model.md.
+# ============================================================
+
+[sim]
+# Jam buka dan tutup kantin. Simulasi berjalan antara dua waktu ini.
+open = "07:00"
+close = "16:00"
+# Berapa kali simulasi diulang per skenario. Semakin besar, makin stabil hasilnya.
+replications = 200
+# Seed dasar RNG. Replikasi i memakai seed + i. Replikasi yang sama dipakai
+# lintas skenario (common random numbers) agar perbandingan adil.
+seed = 2026
+
+[arrivals]
+# Ukuran bin profil kedatangan, dalam menit.
+bin_minutes = 15
+# Skala global laju kedatangan. 1.0 = normal, 1.2 = hari ujian (ramai 20%).
+# Naikkan begini untuk skenario "hari sibuk" tanpa mengubah profil dasar.
+scale = 1.0
+# Pelanggan per jam untuk tiap bin 15 menit, mulai dari jam buka (07:00).
+# 36 bin untuk 07:00-16:00. Cara mengukur: hitung pelanggan masuk tiap 15
+# menit selama beberapa hari, lalu rata-ratakan per bin.
+rates_per_hour = [
+    20, 20, 25, 25,   # 07:00 - 08:00
+    30, 35, 35, 30,   # 08:00 - 09:00
+    30, 35, 35, 30,   # 09:00 - 10:00
+    35, 40, 40, 45,   # 10:00 - 11:00
+    60, 80, 110, 140, # 11:00 - 12:00
+    180, 190, 170, 130, # 12:00 - 13:00
+    90, 70, 60, 55,   # 13:00 - 14:00
+    50, 45, 40, 35,   # 14:00 - 15:00
+    30, 25, 25, 20,   # 15:00 - 16:00
+]
+
+# Tipe pelanggan 1: bayar cepat (misal beli minuman).
+[service.fast]
+share = 0.6            # proporsi pelanggan tipe ini (semua tipe harus total 1.0)
+dist = "lognormal"     # distribusi waktu layanan: lognormal | gamma | exponential | normal | constant
+mean_seconds = 30      # rata-rata waktu layanan, detik. Ukur dengan stopwatch di kasir.
+cv = 0.6               # koefisien variasi (simpangan baku / mean). Default 0.5.
+
+# Tipe pelanggan 2: pesan plus bayar (misal nasi bungkus).
+[service.order]
+share = 0.4
+dist = "gamma"
+mean_seconds = 90
+cv = 0.4
+
+[queue]
+# Mode antrean: "single" = satu baris untuk semua kasir,
+# "per_server" = satu baris per kasir, pelanggan memilih antrean terpendek.
+mode = "single"
+
+[behavior]
+# Pelanggan tidak jadi mengantre jika sudah ada sekian orang menunggu
+# di antrean yang dipilih. 0 = dimatikan.
+balk_queue_length = 15
+# Rata-rata kesabaran pelanggan (menit), distribusi eksponensial.
+# Jika habis, pelanggan keluar dari antrean. 0 = dimatikan.
+patience_mean_minutes = 8
+
+[servers]
+# Jumlah kasir untuk skenario tanpa shift (konstan sepanjang hari).
+count = 3
+
+# Opsional: jumlah kasir berbeda per jam. Jika ada, bagian ini yang dipakai.
+# Contoh kasir penuh saat makan siang:
+# [[shifts]]
+# from = "07:00"
+# to = "11:30"
+# count = 2
+#
+# [[shifts]]
+# from = "11:30"
+# to = "13:30"
+# count = 5
+#
+# [[shifts]]
+# from = "13:30"
+# to = "16:00"
+# count = 2
+
+[sla]
+# Target layanan: P90 waktu tunggu (menit) dan persen maksimal pelanggan batal.
+p90_wait_minutes = 5
+max_abandon_percent = 2
+
+[cost]
+# Biaya kasir per jam (Rupiah).
+cashier_per_hour = 15000
+# Perkiraan rugi per pelanggan yang batal/kabur (Rupiah).
+lost_customer_cost = 12000
+
+[report]
+# Skenario 1 sampai sekian kasir dievaluasi untuk laporan dan optimizer.
+max_servers = 8
