@@ -19,6 +19,9 @@ jobs:
         julia-version: ['1.10', '1']
     steps:
       - uses: actions/checkout@v4
+      - name: Drop lockfile on newer Julia
+        if: matrix.julia-version != '1.10'
+        run: rm -f Manifest.toml
       - uses: julia-actions/setup-julia@v2
         with:
           version: ${{ matrix.julia-version }}

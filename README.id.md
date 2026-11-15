@@ -71,7 +71,7 @@
 | **Optimizer** | Mencari jumlah kasir terkecil yang memenuhi SLA (P90 tunggu, tingkat batal) dan membandingkan biaya harian (gaji vs penjualan hilang) |
 | **Laporan satu perintah** | `julia --project=. scripts/rushlane.jl` menulis laporan Markdown, ekspor CSV, dan tiga grafik ke folder `out/` |
 | **Visualisasi** | Panjang antrean sepanjang hari, histogram waktu tunggu, dan kurva tunggu/batal terhadap jumlah kasir |
-| **Reproducible** | RNG terkontrol seed, common random numbers lintas skenario, rentang dependensi terkunci di `Project.toml` |
+| **Reproducible** | RNG terkontrol seed, common random numbers lintas skenario, `Manifest.toml` terkunci (Julia 1.10 LTS) |
 
 ---
 
@@ -146,7 +146,7 @@ cd rushlane
 #### 2. Pasang dependensi dan verifikasi
 
 > [!IMPORTANT]
-> Langkah ini meresolusi dan mengunduh versi paket yang kompatibel dari registry. Membutuhkan akses jaringan pada instalasi pertama.
+> `Manifest.toml` yang di-commit menargetkan Julia 1.10 LTS agar instalasi bit-for-bit identik. Di Julia 1.12 atau lebih baru, hapus `Manifest.toml` sebelum instantiate; resolver akan memilih versi yang kompatibel untuk Julia kamu.
 
 ```bash
 julia --project=. -e 'using Pkg; Pkg.instantiate()'

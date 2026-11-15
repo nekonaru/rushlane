@@ -71,7 +71,7 @@
 | **Optimizer** | Finds the smallest cashier count that meets your SLA (P90 wait, abandon rate) and compares daily costs (wages vs lost sales) |
 | **One-command report** | `julia --project=. scripts/rushlane.jl` writes a Markdown report, CSV exports and three figures into `out/` |
 | **Visualization** | Queue length over the day, waiting-time histogram, and wait/abandon versus cashier count |
-| **Reproducible** | Seed-controlled RNG, common random numbers across scenarios, pinned dependency ranges in `Project.toml` |
+| **Reproducible** | Seed-controlled RNG, common random numbers across scenarios, committed `Manifest.toml` (Julia 1.10 LTS) |
 
 ---
 
@@ -146,7 +146,7 @@ cd rushlane
 #### 2. Install dependencies and verify
 
 > [!IMPORTANT]
-> This resolves and downloads compatible package versions from the registry. Requires network access the first time.
+> The committed `Manifest.toml` targets Julia 1.10 LTS for bit-for-bit reproducibility. On Julia 1.12 or newer, delete `Manifest.toml` before instantiating; the resolver then picks compatible versions for your Julia.
 
 ```bash
 julia --project=. -e 'using Pkg; Pkg.instantiate()'

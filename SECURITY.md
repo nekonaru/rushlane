@@ -21,4 +21,4 @@ untrusted configuration files.
 
 - Input validation of TOML configuration files
 - Resource usage during simulation runs
-- Dependency integrity (registered Julia packages only, bounds pinned in `Project.toml`)
+- Dependency integrity (registered Julia packages only, locked by a committed `Manifest.toml` pinned for Julia 1.10 LTS)

@@ -18,5 +18,5 @@ Rilis publik pertama. Rushlane mensimulasikan antrean kantin kampus dan merekome
 
 ## Peningkatan
 
-- **Rentang dependensi terkunci.** Batas compat di `Project.toml` membuat instalasi reproducible di Julia 1.10 dan 1.x.
+- **Instalasi terkunci.** `Manifest.toml` di-commit untuk Julia 1.10 LTS; Julia yang lebih baru meresolusi dari batas compat di `Project.toml`.
 - **Validasi input.** Setiap nilai TOML diperiksa tipe dan rentangnya di boundary, dengan pesan error yang jelas.
