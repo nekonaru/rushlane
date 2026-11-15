@@ -18,5 +18,5 @@ First public release. Rushlane simulates a campus canteen queue and recommends t
 
 ## Improvements
 
-- **Pinned dependencies.** `Manifest.toml` is committed so installs are reproducible.
+- **Pinned dependency ranges.** Compat bounds in `Project.toml` keep installs reproducible on Julia 1.10 and 1.x.
 - **Input validation.** Every TOML value is type- and range-checked at the boundary, with clear errors.
