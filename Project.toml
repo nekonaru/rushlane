@@ -1,0 +1,9 @@
+name = "Rushlane"
+uuid = "00eb7cde-bc33-456c-884b-62e8ac7366c5"
+authors = ["Nicolas Dwi Dharma <nicolasdwidharma@gmail.com>"]
+version = "0.1.0"
+
+[deps]
+
+[compat]
+julia = "1.10"
