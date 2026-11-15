@@ -12,6 +12,7 @@ fmt_ci(v, ci) = string(round(v, digits = 2), " ± ", round(ci, digits = 2))
 fmt_pct(v) = string(round(v, digits = 1), "%")
 fmt_min(v_seconds) = string(round(v_seconds / 60, digits = 2))
 fmt_min_ci(v, ci) = string(round(v / 60, digits = 2), " ± ", round(ci / 60, digits = 2))
+fmt_money(v) = string(round(Int, v))
 
 function _config_section(io, cfg::SimConfig)
     println(io, "## Configuration")
@@ -44,7 +45,7 @@ function _config_section(io, cfg::SimConfig)
     end
     println(io)
     println(io, "| SLA | P90 wait ≤ $(round(cfg.sla_p90_wait_seconds / 60, digits = 1)) min, abandon ≤ $(cfg.sla_max_abandon_percent)% |")
-    println(io, "| Cost | cashier $(cfg.cashier_per_hour)/hour, lost customer $(cfg.lost_customer_cost) |")
+    println(io, "| Cost | cashier $(round(Int, cfg.cashier_per_hour))/hour, lost customer $(round(Int, cfg.lost_customer_cost)) |")
     println(io)
 end
 
@@ -69,7 +70,7 @@ function _cost_section(io, table::DataFrame, cfg::SimConfig)
     println(io, "| Cashiers | Lost customers/day | Cashier cost/day | Lost sales cost/day | Total cost/day |")
     println(io, "|---------|--------------------|------------------|---------------------|----------------|")
     for row in eachrow(table)
-        println(io, "| $(row.servers) | $(round(row.expected_lost_customers, digits = 1)) | $(round(row.cashier_cost_per_day, digits = 0)) | $(round(row.lost_sales_cost_per_day, digits = 0)) | $(round(row.total_cost_per_day, digits = 0)) |")
+        println(io, "| $(row.servers) | $(round(row.expected_lost_customers, digits = 1)) | $(fmt_money(row.cashier_cost_per_day)) | $(fmt_money(row.lost_sales_cost_per_day)) | $(fmt_money(row.total_cost_per_day)) |")
     end
     println(io)
 end
@@ -78,16 +79,16 @@ function _recommendation(io, opt, cfg::SimConfig)
     println(io, "## Recommendation")
     println(io)
     if opt.recommended === nothing
-        println(io, "No scenario up to $(maximum(opt.table.servers)) cashiers meets the SLA ")
-        println(io, "(P90 wait ≤ $(round(cfg.sla_p90_wait_seconds / 60, digits = 1)) min and abandon ≤ $(cfg.sla_max_abandon_percent)%). ")
+        println(io, "No scenario up to $(maximum(opt.table.servers)) cashiers meets the SLA")
+        println(io, "(P90 wait ≤ $(round(cfg.sla_p90_wait_seconds / 60, digits = 1)) min and abandon ≤ $(cfg.sla_max_abandon_percent)%).")
         println(io, "Consider more cashiers, shorter service times, or relaxing the SLA.")
     else
         best = opt.recommended
-        println(io, "Use **$(best) cashier$(best == 1 ? "" : "s")**. It is the smallest number that meets the SLA ")
+        println(io, "Use **$(best) cashier$(best == 1 ? "" : "s")**. It is the smallest number that meets the SLA")
         println(io, "(P90 wait ≤ $(round(cfg.sla_p90_wait_seconds / 60, digits = 1)) min, abandon ≤ $(cfg.sla_max_abandon_percent)%).")
         if opt.cost_optimal != best
             println(io)
-            println(io, "The cheapest option overall is $(opt.cost_optimal) cashier$(opt.cost_optimal == 1 ? "" : "s") by total daily cost, ")
+            println(io, "The cheapest option overall is $(opt.cost_optimal) cashier$(opt.cost_optimal == 1 ? "" : "s") by total daily cost,")
             println(io, "but that configuration does not meet the SLA. $(best) cashiers is the cheapest option that does.")
         else
             println(io)

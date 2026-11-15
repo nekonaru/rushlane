@@ -234,7 +234,7 @@ end
     λ = 120 / 3600
     μ = 1 / 60
     expected = erlang_c(λ, μ, 3).wq
-    df = run_replications(cfg, 3; n = 60, seed = 31337)
+    df = run_replications(cfg, 3; n = 200, seed = 31337)
     sim_wq = mean(df.wait_mean)
     @test abs(sim_wq - expected) / expected < 0.03
 end

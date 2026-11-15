@@ -8,16 +8,43 @@ const BRAND_INK = "#1B1B1A"
 """
     generate_queue_plot(series_t, series_len, cfg; path="out/queue_length.png") -> String
 
-Step plot of the number of customers waiting, x axis in hours since open.
+Line plot of the time-weighted average number of customers waiting, averaged
+over 15-minute buckets, x axis in hours since open.
 """
 function generate_queue_plot(series_t::AbstractVector, series_len::AbstractVector, cfg::SimConfig;
                              path::AbstractString="out/queue_length.png")::String
     mkpath(dirname(path))
-    x = (series_t .- cfg.open_seconds) ./ 3600
+    day_seconds = cfg.close_seconds - cfg.open_seconds
+    bucket = 15 * 60
+    n_buckets = ceil(Int, day_seconds / bucket)
+    sums = zeros(Float64, n_buckets)
+    counts = zeros(Float64, n_buckets)
+    # series is a step function: value series_len[i] holds over (series_t[i], series_t[i+1]]
+    # walk it and distribute each segment over the buckets it overlaps
+    for i in eachindex(series_t)
+        t0 = series_t[i]
+        v = series_len[i]
+        t1 = i < length(series_t) ? series_t[i + 1] : cfg.close_seconds
+        t1 = min(t1, cfg.close_seconds)
+        t1 <= t0 && continue
+        b0 = clamp(floor(Int, (t0 - cfg.open_seconds) / bucket) + 1, 1, n_buckets)
+        b1 = clamp(floor(Int, (t1 - cfg.open_seconds) / bucket) + 1, 1, n_buckets)
+        for b in b0:b1
+            seg_start = max(t0, cfg.open_seconds + (b - 1) * bucket)
+            seg_end = min(t1, cfg.open_seconds + b * bucket)
+            seg = seg_end - seg_start
+            if seg > 0
+                sums[b] += v * seg
+                counts[b] += seg
+            end
+        end
+    end
+    avg = sums ./ max.(counts, 1e-9)
+    x = ((1:n_buckets) .- 0.5) .* (bucket / 3600)
     fig = Figure(size = (900, 380), fontsize = 13)
     ax = Axis(fig[1, 1], xlabel = "Hours since open ($(format_clock(cfg.open_seconds)))",
-              ylabel = "Customers waiting", title = "Queue length over the day")
-    lines!(ax, x, series_len, color = BRAND_GREEN, linewidth = 1.6)
+              ylabel = "Customers waiting", title = "Queue length over the day (15-minute average)")
+    lines!(ax, x, avg, color = BRAND_GREEN, linewidth = 2.2)
     save(path, fig)
     return path
 end
