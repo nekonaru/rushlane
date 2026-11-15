@@ -16,3 +16,6 @@
 .DS_Store
 Thumbs.db
 *.swp
+
+# Julia library lockfile (see AGENTS.md note)
+Manifest.toml
