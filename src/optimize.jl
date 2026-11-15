@@ -22,7 +22,7 @@ function optimize(cfg::SimConfig; max_servers::Int=cfg.max_servers,
     day_hours = (cfg.close_seconds - cfg.open_seconds) / 3600
     expected = expected_arrivals(cfg)
 
-    sla_ok = [row.wait_p90 <= cfg.sla_p90_wait_seconds && row.abandon_percent <= cfg.sla_max_abandon_percent
+    sla_ok = [row.wait_p90_seconds <= cfg.sla_p90_wait_seconds && row.abandon_percent <= cfg.sla_max_abandon_percent
               for row in eachrow(table)]
     idx = findfirst(sla_ok)
     recommended = idx === nothing ? nothing : Int(table.servers[idx])
