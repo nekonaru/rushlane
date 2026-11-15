@@ -68,15 +68,15 @@ end
 """
     generate_metrics_vs_servers(table::DataFrame; path="out/metrics_vs_servers.png") -> String
 
-Two panels: mean wait (min) with 95% CI band, and abandon percent with CI band,
-both against the number of cashiers.
+Two panels: mean wait (min) with 95% CI error bars, and abandon percent with
+CI error bars, both against the number of cashiers.
 """
 function generate_metrics_vs_servers(table::DataFrame;
                                      path::AbstractString="out/metrics_vs_servers.png")::String
     mkpath(dirname(path))
     servers = table.servers
-    wait_min = table.wait_mean ./ 60
-    wait_ci = table.wait_mean_ci ./ 60
+    wait_min = table.wait_mean_seconds ./ 60
+    wait_ci = table.wait_mean_seconds_ci ./ 60
     abandon = table.abandon_percent
     abandon_ci = table.abandon_percent_ci
 
