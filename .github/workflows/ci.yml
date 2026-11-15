@@ -42,7 +42,7 @@ jobs:
       - uses: julia-actions/cache@v2
       - uses: julia-actions/julia-buildpkg@v1
       - name: Run tests with coverage
-        run: julia --project=. --code-coverage=user -e 'using Pkg; Pkg.test()'
+        run: julia --project=. -e 'using Pkg; Pkg.test(coverage=true)'
       - name: Check coverage threshold
         run: julia scripts/check_coverage.jl 60
 
