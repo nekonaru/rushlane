@@ -19,6 +19,9 @@ jobs:
         julia-version: ['1.10', '1']
     steps:
       - uses: actions/checkout@v4
+      - name: Drop lockfile on newer Julia
+        if: matrix.julia-version != '1.10'
+        run: rm -f Manifest.toml
       - uses: julia-actions/setup-julia@v2
         with:
           version: ${{ matrix.julia-version }}
@@ -39,7 +42,7 @@ jobs:
       - uses: julia-actions/cache@v2
       - uses: julia-actions/julia-buildpkg@v1
       - name: Run tests with coverage
-        run: julia --project=. --code-coverage=user -e 'using Pkg; Pkg.test()'
+        run: julia --project=. -e 'using Pkg; Pkg.test(coverage=true)'
       - name: Check coverage threshold
         run: julia scripts/check_coverage.jl 60
 

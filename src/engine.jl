@@ -148,9 +148,12 @@ function shortest_lane(st::EngineState)::Int
     best = 0
     best_n = typemax(Int)
     for i in eachindex(st.lanes)
-        s = st.servers[min(i, length(st.servers))]
-        if length(st.lanes) > 1 && (!s.on || s.leaving)
-            continue
+        # only consider lanes whose server is on and not leaving (single mode: the one shared lane)
+        if length(st.lanes) > 1
+            s = st.servers[min(i, length(st.servers))]
+            if !s.on || s.leaving
+                continue
+            end
         end
         n = st.lane_waiting[i]
         if n < best_n
@@ -158,7 +161,8 @@ function shortest_lane(st::EngineState)::Int
             best_n = n
         end
     end
-    return best == 0 ? 1 : best
+    # no eligible lane (all servers leaving): queue into the least-loaded lane
+    return best == 0 ? argmin(st.lane_waiting) : best
 end
 
 # Remove n servers: idle ones first, then mark busy ones as leaving.
@@ -222,18 +226,9 @@ function dispatch!(st::EngineState, cfg::SimConfig)
             if c.state !== :waiting
                 continue  # stale entry; its count was already adjusted at renege time
             end
-            tick!(st, st.t)
-            c.state = :in_service
-            c.entered = st.t
+            c.state = :dispatched
             c.lane = lane_idx
-            s.busy = true
-            s.current_customer = cid
-            st.waiting_total -= 1
-            st.lane_waiting[lane_idx] -= 1
-            push!(st.waits, c.entered - c.arrival)
-            push!(st.series_t, st.t)
-            push!(st.series_len, Float64(st.waiting_total))
-            push_event!(st, st.t + c.service_time, :service_done, s.id)
+            push_event!(st, st.t, :service_start, compose_key(s.id, cid))
             if cfg.check_invariants && st.waiting_total < 0
                 error("queue length went negative")
             end
@@ -241,6 +236,9 @@ function dispatch!(st::EngineState, cfg::SimConfig)
         end
     end
 end
+
+@inline compose_key(server_id::Int, cid::Int) = server_id * 1_000_000_000_000 + cid
+@inline decompose_key(key::Int) = (div(key, 1_000_000_000_000), rem(key, 1_000_000_000_000))
 
 """
     simulate(cfg::SimConfig; rng=nothing, servers_override=nothing) -> SimResult
@@ -307,6 +305,9 @@ function simulate(cfg::SimConfig; rng::Union{AbstractRNG,Nothing}=nothing,
         end
         last_event_t = t
         st.t = t
+        if t > cfg.close_seconds
+            break  # closing time: only events up to close are processed
+        end
 
         if kind === :arrival
             c = st.customers[id+1]
@@ -329,6 +330,27 @@ function simulate(cfg::SimConfig; rng::Union{AbstractRNG,Nothing}=nothing,
                 end
             end
             dispatch!(st, cfg)
+
+        elseif kind === :service_start
+            s_id, cid = decompose_key(id)
+            s = st.servers[s_id]
+            c = st.customers[cid+1]
+            if cfg.check_invariants && c.state !== :dispatched
+                error("service_start for customer in state $(c.state)")
+            end
+            tick!(st, t)
+            c.state = :in_service
+            c.entered = t
+            s.busy = true
+            s.current_customer = cid
+            st.waiting_total -= 1
+            st.lane_waiting[c.lane] -= 1
+            push!(st.series_t, t)
+            push!(st.series_len, Float64(st.waiting_total))
+            if cfg.check_invariants && (st.waiting_total < 0 || st.lane_waiting[c.lane] < 0)
+                error("waiting count went negative on service_start")
+            end
+            push_event!(st, t + c.service_time, :service_done, s_id)
 
         elseif kind === :renege
             c = st.customers[id+1]
@@ -359,6 +381,7 @@ function simulate(cfg::SimConfig; rng::Union{AbstractRNG,Nothing}=nothing,
             s.current_customer = -1
             s.busy_time += c.service_time
             st.done += 1
+            push!(st.waits, c.entered - c.arrival)
             push!(st.sojourns, t - c.arrival)
             if s.leaving
                 s.leaving = false

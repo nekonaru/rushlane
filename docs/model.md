@@ -76,8 +76,9 @@ redistributed to the remaining lines.
 
 ## Metrics
 
-- Waiting time is queueing delay (entry minus arrival). Only served customers
-  are counted. Customers still in line at closing are excluded.
+- Waiting time is queueing delay (entry minus arrival). Only customers who
+  completed service before closing are counted. Customers still waiting or
+  mid-service at closing are excluded.
 - Queue length is the number waiting (not in service), time-weighted over the
   day for the average and peaked for the maximum.
 - Utilization is busy seconds divided by scheduled cashier-seconds (shifts

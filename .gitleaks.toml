@@ -1,0 +1,8 @@
+title = "gitleaks config for rushlane"
+
+[allowlist]
+description = "Lock file and generated example outputs contain no secrets"
+paths = [
+    '''Manifest.toml''',
+    '''out/''',
+]

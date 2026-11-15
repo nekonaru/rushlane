@@ -17,7 +17,7 @@
 **English** | [Bahasa Indonesia](README.id.md)
 
 > [!NOTE]
-> Rushlane needs Julia 1.10 or newer. Everything else is installed automatically from `Project.toml` and `Manifest.toml` when you instantiate the project.
+> Rushlane needs Julia 1.10 or newer. Everything else is resolved and installed automatically by Julia's package manager when you instantiate the project.
 
 ---
 
@@ -71,7 +71,7 @@
 | **Optimizer** | Finds the smallest cashier count that meets your SLA (P90 wait, abandon rate) and compares daily costs (wages vs lost sales) |
 | **One-command report** | `julia --project=. scripts/rushlane.jl` writes a Markdown report, CSV exports and three figures into `out/` |
 | **Visualization** | Queue length over the day, waiting-time histogram, and wait/abandon versus cashier count |
-| **Reproducible** | Seed-controlled RNG, common random numbers across scenarios, committed `Manifest.toml` |
+| **Reproducible** | Seed-controlled RNG, common random numbers across scenarios, committed `Manifest.toml` (Julia 1.10 LTS) |
 
 ---
 
@@ -146,7 +146,7 @@ cd rushlane
 #### 2. Install dependencies and verify
 
 > [!IMPORTANT]
-> This downloads the exact package versions in `Manifest.toml`. Do not delete the `Manifest.toml` file.
+> The committed `Manifest.toml` targets Julia 1.10 LTS for bit-for-bit reproducibility. On Julia 1.12 or newer, delete `Manifest.toml` before instantiating; the resolver then picks compatible versions for your Julia.
 
 ```bash
 julia --project=. -e 'using Pkg; Pkg.instantiate()'
@@ -213,8 +213,7 @@ All configuration lives in one TOML file (see `config/kantin_default.toml`, comm
 
 ```
 rushlane/
-├── Project.toml              # package definition, dependencies, compat
-├── Manifest.toml             # exact dependency versions, committed on purpose
+├── Project.toml              # package definition, dependencies, compat bounds
 ├── LICENSE                   # MIT
 ├── README.md                 # this file (English)
 ├── README.id.md              # Bahasa Indonesia
@@ -285,7 +284,7 @@ julia --project=. -e 'using Pkg; Pkg.test()'
 
 ## Security
 
-Rushlane validates every TOML configuration value at the boundary (types, ranges, supported distribution names, bin count consistency), runs only registered Julia packages with versions locked in a committed `Manifest.toml`, and scans for secrets in CI. Report vulnerabilities privately through the process in [`SECURITY.md`](SECURITY.md), not by opening a public issue.
+Rushlane validates every TOML configuration value at the boundary (types, ranges, supported distribution names, bin count consistency), runs only registered Julia packages with dependency ranges pinned in `Project.toml`, and scans for secrets in CI. Report vulnerabilities privately through the process in [`SECURITY.md`](SECURITY.md), not by opening a public issue.
 
 > [!NOTE]
 > Rushlane has no network services, no accounts and stores no personal data. The main risks are hostile configuration files and resource exhaustion; both are bounded (input caps in `load_config`, fixed simulation horizon).
@@ -324,13 +323,13 @@ Randomness makes single runs noisy. With 200 replications, the reported means ha
 
 <details><summary><b>Why do different cashier counts use the same random seeds?</b></summary>
 
-Common random numbers pair the arrival streams and service times across scenarios, which makes the comparison fair and the differences you see are real, not noise.
+Common random numbers pair the arrival stream and the service-time stream across scenarios, so the comparison is paired and fair. Note that this pairs the draws, not the exact outcomes: once balking or reneging decisions differ between scenarios, the paths diverge from there.
 
 </details>
 
 <details><summary><b>My simulated day has customers still in line at closing time. What happens to them?</b></summary>
 
-They are excluded from waiting-time statistics; only served customers count. Increase `replications` to tighten the estimates.
+Customers still in line or mid-service at closing are excluded from waiting-time statistics; only customers who completed service before closing count. Increase `replications` to tighten the estimates.
 
 </details>
 

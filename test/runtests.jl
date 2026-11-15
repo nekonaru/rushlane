@@ -74,6 +74,44 @@ end
         """)
     end
     @test_throws ArgumentError load_config(bad)  # 36 bins required, got 3
+
+    function make_config(content::AbstractString)
+        p = joinpath(mktempdir(), "case.toml")
+        write(p, content)
+        return p
+    end
+    base = """
+    [sim]
+    open = "08:00"
+    close = "12:00"
+    replications = 10
+    seed = 1
+    [arrivals]
+    bin_minutes = 60
+    rates_per_hour = [30, 30, 30, 30]
+    [service.std]
+    share = 1.0
+    dist = "exponential"
+    mean_seconds = 60
+    [behavior]
+    balk_queue_length = 5
+    patience_mean_minutes = 0
+    [servers]
+    count = 1
+    """
+
+    # share as boolean is rejected, not coerced
+    @test_throws ArgumentError load_config(make_config(replace(base, "share = 1.0" => "share = true")))
+    # replications with a fractional value is rejected
+    @test_throws ArgumentError load_config(make_config(replace(base, "replications = 10" => "replications = 1.5")))
+    # negative balking is rejected instead of silently disabling balking
+    @test_throws ArgumentError load_config(make_config(replace(base, "balk_queue_length = 5" => "balk_queue_length = -5")))
+    # inf/nan are rejected
+    @test_throws ArgumentError load_config(make_config(replace(base, "mean_seconds = 60" => "mean_seconds = inf")))
+    # non-string mode is rejected with a readable error
+    @test_throws ArgumentError load_config(make_config(base * "\n[queue]\nmode = 3\n"))
+    # a valid config loads fine
+    @test load_config(make_config(base)) isa Rushlane.SimConfig
 end
 
 @testset "arrival generator statistics" begin
@@ -91,10 +129,35 @@ end
     cfg2 = load_config(DEFAULT_CFG)
     times = Rushlane.generate_arrivals(cfg2, StableRNG(7))
     @test issorted(times)
+
+    # global scale multiplies the expected count exactly
+    base_path = joinpath(mktempdir(), "scale_1.toml")
+    doubled_path = joinpath(mktempdir(), "scale_2.toml")
+    toml_template = """
+    [sim]
+    open = "08:00"
+    close = "10:00"
+    replications = 1
+    seed = 1
+    [arrivals]
+    bin_minutes = 60
+    scale = SCALE
+    rates_per_hour = [10, 10]
+    [service.std]
+    share = 1.0
+    dist = "exponential"
+    mean_seconds = 60
+    [servers]
+    count = 1
+    """
+    write(base_path, replace(toml_template, "SCALE" => "1.0"))
+    write(doubled_path, replace(toml_template, "SCALE" => "2.0"))
+    cfg_one = load_config(base_path)
+    cfg_two = load_config(doubled_path)
+    @test Rushlane.expected_arrivals(cfg_two) == 2 * Rushlane.expected_arrivals(cfg_one)
 end
 
 @testset "engine invariants" begin
-    cfg = tiny_cfg(replications = 1)
     cfg = load_config(DEFAULT_CFG, check_invariants = true)
     r = simulate(cfg, rng = StableRNG(2026), servers_override = 4)
     @test all(w -> w >= 0, r.waits)
@@ -103,6 +166,9 @@ end
     @test 0.0 <= r.utilization <= 1.0
     @test r.avg_queue_length >= 0
     @test r.max_queue_length >= 0
+    @test length(r.waits) == r.done
+    @test length(r.sojourns) == r.done
+    @test r.throughput_per_hour <= 4.0 * 3600 / 30 # upper bound: mean service 30 s per customer fast type
 end
 
 @testset "determinism" begin
@@ -235,7 +301,7 @@ end
     μ = 1 / 60
     expected = erlang_c(λ, μ, 3).wq
     df = run_replications(cfg, 3; n = 200, seed = 31337)
-    sim_wq = mean(df.wait_mean)
+    sim_wq = mean(df.wait_mean_seconds)
     @test abs(sim_wq - expected) / expected < 0.03
 end
 
@@ -244,8 +310,8 @@ end
     df = run_replications(cfg, 2; n = 20, seed = 777)
     @test nrow(df) == 20
     s = Rushlane.summarize(df)
-    @test s.mean_values["wait_mean"] == mean(df.wait_mean)
-    @test s.ci95["wait_mean"] > 0
+    @test s.mean_values["wait_mean_seconds"] == mean(df.wait_mean_seconds)
+    @test s.ci95["wait_mean_seconds"] > 0
     @test 0.0 <= s.mean_values["utilization"] <= 1.0
 end
 
@@ -256,7 +322,7 @@ end
     @test length(opt.table.servers) == 4
     @test opt.recommended === nothing || 1 <= opt.recommended <= 4
     @test opt.cost_optimal in 1:4
-    @test all(opt.table.sla_met .== (opt.table.wait_p90 .<= cfg.sla_p90_wait_seconds .&&
+    @test all(opt.table.sla_met .== (opt.table.wait_p90_seconds .<= cfg.sla_p90_wait_seconds .&&
                                      opt.table.abandon_percent .<= cfg.sla_max_abandon_percent))
 end
 
@@ -272,4 +338,117 @@ end
     content = read(path, String)
     @test occursin("Rushlane report", content)
     @test occursin("Recommendation", content)
+end
+
+@testset "closing time horizon is enforced" begin
+    # Extreme congestion: at most 30 services fit in 1 hour on one 120 s server.
+    path = joinpath(mktempdir(), "congestion.toml")
+    open(path, "w") do io
+        print(io, """
+        [sim]
+        open = "08:00"
+        close = "09:00"
+        replications = 1
+        seed = 1
+        [arrivals]
+        bin_minutes = 60
+        rates_per_hour = [600]
+        [service.std]
+        share = 1.0
+        dist = "exponential"
+        mean_seconds = 120
+        [queue]
+        mode = "single"
+        [behavior]
+        balk_queue_length = 0
+        patience_mean_minutes = 0
+        [servers]
+        count = 1
+        [sla]
+        p90_wait_minutes = 5
+        max_abandon_percent = 100
+        [cost]
+        cashier_per_hour = 15000
+        lost_customer_cost = 12000
+        """)
+    end
+    cfg = load_config(path)
+    r = simulate(cfg, rng = StableRNG(1))
+    @test r.done <= 30
+    @test r.throughput_per_hour <= 30
+    @test length(r.waits) == r.done
+    @test r.avg_queue_length < 600  # regression: backlog must not leak past closing
+end
+
+@testset "partial final bin never produces arrivals past closing" begin
+    path = joinpath(mktempdir(), "partial_bin.toml")
+    open(path, "w") do io
+        print(io, """
+        [sim]
+        open = "08:00"
+        close = "12:30"
+        replications = 1
+        seed = 9
+        [arrivals]
+        bin_minutes = 60
+        rates_per_hour = [30, 30, 120, 30, 30]
+        [service.std]
+        share = 1.0
+        dist = "exponential"
+        mean_seconds = 60
+        [servers]
+        count = 1
+        """)
+    end
+    cfg = load_config(path)
+    close_s = Rushlane.parse_clock("12:30")
+    for seed in 1:10
+        times = Rushlane.generate_arrivals(cfg, StableRNG(seed))
+        @test all(t -> t < close_s, times)
+    end
+    @test Rushlane.expected_arrivals(cfg) == 30 + 30 + 120 + 30 + 15
+end
+
+@testset "per_server capacity reduction redistributes waiting customers" begin
+    path = joinpath(mktempdir(), "deactivate.toml")
+    open(path, "w") do io
+        print(io, """
+        [sim]
+        open = "08:00"
+        close = "11:00"
+        replications = 1
+        seed = 21
+        [arrivals]
+        bin_minutes = 60
+        rates_per_hour = [240, 240, 240]
+        [service.std]
+        share = 1.0
+        dist = "exponential"
+        mean_seconds = 60
+        [queue]
+        mode = "per_server"
+        [behavior]
+        balk_queue_length = 0
+        patience_mean_minutes = 0
+        [servers]
+        count = 2
+        [[shifts]]
+        from = "09:00"
+        to = "11:00"
+        count = 1
+        [sla]
+        p90_wait_minutes = 5
+        max_abandon_percent = 100
+        [cost]
+        cashier_per_hour = 15000
+        lost_customer_cost = 12000
+        """)
+    end
+    cfg = load_config(path, check_invariants = true)
+    @test Rushlane.servers_at(cfg, Rushlane.parse_clock("08:30")) == 2
+    @test Rushlane.servers_at(cfg, Rushlane.parse_clock("10:00")) == 1
+    r = simulate(cfg, rng = StableRNG(21))
+    @test r.done > 0
+    @test length(r.waits) == r.done
+    @test 0.0 <= r.utilization <= 1.0
 end

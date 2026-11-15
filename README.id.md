@@ -17,7 +17,7 @@
 [English](README.md) | **Bahasa Indonesia**
 
 > [!NOTE]
-> Rushlane membutuhkan Julia 1.10 atau yang lebih baru. Semua kebutuhan lain terpasang otomatis dari `Project.toml` dan `Manifest.toml` saat kamu meng-instantiate proyek.
+> Rushlane membutuhkan Julia 1.10 atau yang lebih baru. Semua kebutuhan lain diresolusi dan dipasang otomatis oleh package manager Julia saat kamu meng-instantiate proyek.
 
 ---
 
@@ -71,7 +71,7 @@
 | **Optimizer** | Mencari jumlah kasir terkecil yang memenuhi SLA (P90 tunggu, tingkat batal) dan membandingkan biaya harian (gaji vs penjualan hilang) |
 | **Laporan satu perintah** | `julia --project=. scripts/rushlane.jl` menulis laporan Markdown, ekspor CSV, dan tiga grafik ke folder `out/` |
 | **Visualisasi** | Panjang antrean sepanjang hari, histogram waktu tunggu, dan kurva tunggu/batal terhadap jumlah kasir |
-| **Reproducible** | RNG terkontrol seed, common random numbers lintas skenario, `Manifest.toml` di-commit |
+| **Reproducible** | RNG terkontrol seed, common random numbers lintas skenario, `Manifest.toml` terkunci (Julia 1.10 LTS) |
 
 ---
 
@@ -146,7 +146,7 @@ cd rushlane
 #### 2. Pasang dependensi dan verifikasi
 
 > [!IMPORTANT]
-> Langkah ini mengunduh versi paket persis seperti di `Manifest.toml`. Jangan hapus file `Manifest.toml`.
+> `Manifest.toml` yang di-commit menargetkan Julia 1.10 LTS agar instalasi bit-for-bit identik. Di Julia 1.12 atau lebih baru, hapus `Manifest.toml` sebelum instantiate; resolver akan memilih versi yang kompatibel untuk Julia kamu.
 
 ```bash
 julia --project=. -e 'using Pkg; Pkg.instantiate()'
@@ -213,8 +213,7 @@ Semua konfigurasi berada di satu file TOML (lihat `config/kantin_default.toml` d
 
 ```
 rushlane/
-├── Project.toml              # definisi package, dependensi, compat
-├── Manifest.toml             # versi dependensi persis, di-commit dengan sengaja
+├── Project.toml              # definisi package, dependensi, batas compat
 ├── LICENSE                   # MIT
 ├── README.md                 # versi Inggris
 ├── README.id.md              # file ini (Bahasa Indonesia)
@@ -285,7 +284,7 @@ julia --project=. -e 'using Pkg; Pkg.test()'
 
 ## Keamanan
 
-Rushlane memvalidasi setiap nilai konfigurasi TOML di boundary (tipe, rentang, nama distribusi yang didukung, konsistensi jumlah bin), hanya menjalankan paket Julia terdaftar dengan versi terkunci di `Manifest.toml` yang di-commit, dan memindai secret di CI. Laporkan kerentanan secara privat lewat proses di [`SECURITY.md`](SECURITY.md), bukan lewat issue publik.
+Rushlane memvalidasi setiap nilai konfigurasi TOML di boundary (tipe, rentang, nama distribusi yang didukung, konsistensi jumlah bin), hanya menjalankan paket Julia terdaftar dengan rentang dependensi terkunci di `Project.toml`, dan memindai secret di CI. Laporkan kerentanan secara privat lewat proses di [`SECURITY.md`](SECURITY.md), bukan lewat issue publik.
 
 > [!NOTE]
 > Rushlane tidak punya network service, akun, atau data pribadi. Risiko utama adalah file konfigurasi berbahaya dan pemakaian sumber daya berlebihan; keduanya dibatasi (batas input di `load_config`, horizon simulasi tetap).
@@ -324,13 +323,13 @@ Acak membuat satu run berisik. Dengan 200 replikasi, mean yang dilaporkan punya 
 
 <details><summary><b>Kenapa jumlah kasir yang berbeda memakai seed acak yang sama?</b></summary>
 
-Common random numbers memasangkan aliran kedatangan dan waktu layanan lintas skenario, jadi perbandingannya adil dan perbedaan yang terlihat nyata, bukan noise.
+Common random numbers memasangkan aliran kedatangan dan aliran waktu layanan lintas skenario, jadi perbandingannya berpasangan dan adil. Perlu dicatat: ini memasangkan angka acaknya, bukan hasil persisnya: begitu keputusan balking atau reneging berbeda antar skenario, jalurnya menyimpang dari sana.
 
 </details>
 
 <details><summary><b>Hari simulasi saya masih menyisakan pelanggan di antrean saat tutup. Bagaimana?</b></summary>
 
-Mereka dikeluarkan dari statistik waktu tunggu; hanya pelanggan yang terlayani yang dihitung. Naikkan `replications` untuk memperketat estimasi.
+Pelanggan yang masih mengantre atau sedang dilayani saat tutup dikeluarkan dari statistik waktu tunggu; hanya pelanggan yang selesai dilayani sebelum tutup yang dihitung. Naikkan `replications` untuk memperketat estimasi.
 
 </details>
 

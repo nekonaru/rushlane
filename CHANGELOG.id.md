@@ -18,5 +18,5 @@ Rilis publik pertama. Rushlane mensimulasikan antrean kantin kampus dan merekome
 
 ## Peningkatan
 
-- **Dependensi terkunci.** `Manifest.toml` di-commit agar instalasi selalu reproducible.
+- **Instalasi terkunci.** `Manifest.toml` di-commit untuk Julia 1.10 LTS; Julia yang lebih baru meresolusi dari batas compat di `Project.toml`.
 - **Validasi input.** Setiap nilai TOML diperiksa tipe dan rentangnya di boundary, dengan pesan error yang jelas.

@@ -26,10 +26,10 @@ function percentile_sorted(v::AbstractVector, q::Real)::Float64
 end
 
 struct RunMetrics
-    wait_mean::Float64
+    wait_mean_seconds::Float64
     wait_median::Float64
-    wait_p90::Float64
-    wait_p95::Float64
+    wait_p90_seconds::Float64
+    wait_p95_seconds::Float64
     sojourn_mean::Float64
     max_queue::Int
     avg_queue::Float64
@@ -44,13 +44,13 @@ end
 
 function metrics_of(r::SimResult)::RunMetrics
     served = length(r.waits)
-    wait_mean = served > 0 ? mean(r.waits) : 0.0
+    wait_mean_seconds = served > 0 ? mean(r.waits) : 0.0
     wait_median = served > 0 ? median(r.waits) : 0.0
-    wait_p90 = served > 0 ? percentile_sorted(r.waits, 90) : 0.0
-    wait_p95 = served > 0 ? percentile_sorted(r.waits, 95) : 0.0
+    wait_p90_seconds = served > 0 ? percentile_sorted(r.waits, 90) : 0.0
+    wait_p95_seconds = served > 0 ? percentile_sorted(r.waits, 95) : 0.0
     sojourn_mean = served > 0 ? mean(r.sojourns) : 0.0
     abandon = r.arrivals > 0 ? (r.balked + r.reneged) / r.arrivals * 100 : 0.0
-    RunMetrics(wait_mean, wait_median, wait_p90, wait_p95, sojourn_mean,
+    RunMetrics(wait_mean_seconds, wait_median, wait_p90_seconds, wait_p95_seconds, sojourn_mean,
                r.max_queue_length, r.avg_queue_length, r.utilization,
                abandon, r.throughput_per_hour, r.done, r.balked, r.reneged, r.arrivals)
 end
@@ -91,8 +91,8 @@ function run_replications(cfg::SimConfig, c::Int; n::Union{Int,Nothing}=nothing,
         r = simulate(cfg, rng = rng, servers_override = c)
         m = metrics_of(r)
         push!(rows, (replication = i, servers = c,
-                     wait_mean = m.wait_mean, wait_median = m.wait_median,
-                     wait_p90 = m.wait_p90, wait_p95 = m.wait_p95,
+                     wait_mean_seconds = m.wait_mean_seconds, wait_median = m.wait_median,
+                     wait_p90_seconds = m.wait_p90_seconds, wait_p95_seconds = m.wait_p95_seconds,
                      sojourn_mean = m.sojourn_mean,
                      max_queue = m.max_queue, avg_queue = m.avg_queue,
                      utilization = m.utilization, abandon_percent = m.abandon_percent,
@@ -143,9 +143,9 @@ function scenario_table(cfg::SimConfig; max_servers::Int=cfg.max_servers,
         df = run_replications(cfg, c, n = n, seed = seed)
         s = summarize(df)
         push!(rows, (servers = c,
-                     wait_mean = s.mean_values["wait_mean"], wait_mean_ci = s.ci95["wait_mean"],
-                     wait_p90 = s.mean_values["wait_p90"], wait_p90_ci = s.ci95["wait_p90"],
-                     wait_p95 = s.mean_values["wait_p95"], wait_p95_ci = s.ci95["wait_p95"],
+                     wait_mean_seconds = s.mean_values["wait_mean_seconds"], wait_mean_seconds_ci = s.ci95["wait_mean_seconds"],
+                     wait_p90_seconds = s.mean_values["wait_p90_seconds"], wait_p90_seconds_ci = s.ci95["wait_p90_seconds"],
+                     wait_p95_seconds = s.mean_values["wait_p95_seconds"], wait_p95_seconds_ci = s.ci95["wait_p95_seconds"],
                      avg_queue = s.mean_values["avg_queue"], avg_queue_ci = s.ci95["avg_queue"],
                      max_queue = s.mean_values["max_queue"], max_queue_ci = s.ci95["max_queue"],
                      utilization = s.mean_values["utilization"], utilization_ci = s.ci95["utilization"],
