@@ -1,5 +1,8 @@
 <div align="center">
-  <img src="assets/rushlane-banner.png" alt="Rushlane logo" width="480" />
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/rushlane-mark-dark.svg">
+    <img src="assets/rushlane-mark-light.svg" alt="Rushlane logo" width="120" />
+  </picture>
   <h1>Rushlane: Discrete-Event Simulation for Canteen Queues</h1>
   <p><b>Simulate how a campus cafeteria queue behaves, compare one line against per-cashier lines,<br/>
   and find the smallest cashier count that meets your service targets.</b></p>

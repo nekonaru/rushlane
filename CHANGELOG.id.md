@@ -20,3 +20,4 @@ Rilis publik pertama. Rushlane mensimulasikan antrean kantin kampus dan merekome
 
 - **Instalasi terkunci.** `Manifest.toml` di-commit untuk Julia 1.10 LTS; Julia yang lebih baru meresolusi dari batas compat di `Project.toml`.
 - **Validasi input.** Setiap nilai TOML diperiksa tipe dan rentangnya di boundary, dengan pesan error yang jelas.
+- **Aset logo.** Master simbol dibangun ulang sebagai SVG akurat secara piksel (versi terang, gelap, dan satu warna), dan header README sekarang memakai mark yang menyesuaikan tema.

@@ -1,5 +1,8 @@
 <div align="center">
-  <img src="assets/rushlane-banner.png" alt="Rushlane logo" width="480" />
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/rushlane-mark-dark.svg">
+    <img src="assets/rushlane-mark-light.svg" alt="Rushlane logo" width="120" />
+  </picture>
   <h1>Rushlane: Simulasi Kejadian Diskrit untuk Antrean Kantin</h1>
   <p><b>Simulasikan perilaku antrean kantin kampus, bandingkan satu baris bersama dengan baris per kasir,<br/>
   dan temukan jumlah kasir terkecil yang memenuhi target layananmu.</b></p>

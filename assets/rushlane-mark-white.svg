@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 276 216" width="276" height="216" role="img" aria-label="Rushlane logo"><title>Rushlane logo</title>
+  <g fill="#FFFFFF">
+    <rect x="24" y="24" width="24" height="15" rx="7.5"/>
+    <rect x="58" y="24" width="24" height="15" rx="7.5"/>
+    <rect x="92" y="24" width="24" height="15" rx="7.5"/>
+    <rect x="126" y="24" width="24" height="15" rx="7.5"/>
+    <rect x="160" y="24" width="24" height="15" rx="7.5"/>
+    <rect x="24" y="177" width="24" height="15" rx="7.5"/>
+    <rect x="58" y="177" width="24" height="15" rx="7.5"/>
+    <rect x="92" y="177" width="24" height="15" rx="7.5"/>
+    <rect x="126" y="177" width="24" height="15" rx="7.5"/>
+    <rect x="160" y="177" width="24" height="15" rx="7.5"/>
+  </g>
+  <circle cx="48" cy="107" r="15" fill="#FFFFFF"/>
+  <circle cx="99" cy="107" r="21" fill="#FFFFFF"/>
+  <circle cx="159" cy="107" r="27" fill="#FFFFFF"/>
+  <rect x="201" y="31" width="52" height="153" rx="26" fill="#FFFFFF"/>
+</svg>
