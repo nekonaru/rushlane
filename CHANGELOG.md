@@ -20,3 +20,4 @@ First public release. Rushlane simulates a campus canteen queue and recommends t
 
 - **Pinned installs.** `Manifest.toml` is committed for Julia 1.10 LTS; newer Julia resolves fresh from the compat bounds in `Project.toml`.
 - **Input validation.** Every TOML value is type- and range-checked at the boundary, with clear errors.
+- **Logo assets.** Symbol masters rebuilt as pixel-accurate SVGs (light, dark, and single-colour versions) and the README header now uses the theme-aware mark.
